@@ -1,0 +1,125 @@
+spring:
+  application:
+    name: notification-system
+
+  # PostgreSQL DataSource
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:notifications}
+    username: ${DB_USER:notify_user}
+    password: ${DB_PASSWORD:notify_pass}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # JPA / Hibernate
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  # Flyway migrations
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  # Redis Cache
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 16
+          max-idle: 8
+          min-idle: 2
+
+  # RabbitMQ
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    listener:
+      simple:
+        retry:
+          enabled: true
+          initial-interval: 2000ms
+          max-attempts: 3
+          multiplier: 2.0
+          max-interval: 10000ms
+        acknowledge-mode: auto
+
+  # Cache
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000  # 1 hour in ms
+      cache-null-values: false
+
+# Server
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: always
+    include-binding-errors: always
+
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,queues
+  endpoint:
+    health:
+      show-details: always
+
+# Notification-specific config
+notification:
+  retry:
+    max-attempts: 5
+    initial-delay-ms: 1000
+    backoff-multiplier: 2.0
+  cache:
+    user-ttl-seconds: 3600
+    device-ttl-seconds: 1800
+    template-ttl-seconds: 86400
+  queues:
+    ios: notification.ios
+    android: notification.android
+    sms: notification.sms
+    email: notification.email
+  third-party:
+    apns:
+      endpoint: https://api.sandbox.push.apple.com
+      bundle-id: com.example.app
+    fcm:
+      endpoint: https://fcm.googleapis.com/fcm/send
+      server-key: YOUR_FCM_SERVER_KEY
+    sms:
+      endpoint: https://api.twilio.com/2010-04-01
+      account-sid: YOUR_TWILIO_ACCOUNT_SID
+      auth-token: YOUR_TWILIO_AUTH_TOKEN
+      from-number: "+15005550006"
+    email:
+      endpoint: https://api.sendgrid.com/v3/mail/send
+      api-key: YOUR_SENDGRID_API_KEY
+      from-address: notifications@example.com
+      from-name: Notification System
+
+logging:
+  level:
+    com.notifications: DEBUG
+    org.springframework.amqp: INFO
+    org.hibernate.SQL: WARN
